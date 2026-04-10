@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>PS Daily Report Generator</title>
+
+<style>
+body {
+  font-family: "Segoe UI", Arial, sans-serif;
+  margin: 0;
+  background: #0F172A;
+  color: #333;
+}
+
+.header {
+  background: #0F172A;
+  color: white;
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.header img {
+  position: absolute;
+  left: 20px;
+  height: 55px;
+}
+
+.main-wrapper {
+  display: grid;
+  grid-template-columns: 65% 35%;
+  gap: 16px;
+  padding: 20px;
+  max-width: 1300px;
+  margin: auto;
+}
+
+.left-panel,
+.right-panel {
+  background: #fff;
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+}
+
+.right-panel {
+  border-left: 4px solid #d32f2f;
+}
+
+h3 {
+  margin-top: 0;
+  margin-bottom: 8px;
+  color: #222;
+}
+
+#pasteArea {
+  border: 2px dashed #aaa;
+  height: 120px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+  cursor: pointer;
+  color: #666;
+  background: #fafafa;
+  transition: 0.2s;
+}
+
+#pasteArea:hover {
+  background: #f0f0f0;
+  border-color: #777;
+}
+
+.preview img {
+  max-width: 110px;
+  margin-right: 6px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+}
+
+canvas {
+  width: 100%;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  margin-top: 10px;
+  background: #fff;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 14px;
+}
+
+th, td {
+  border: 1px solid #ddd;
+  padding: 6px;
+  font-size: 13px;
+}
+
+th {
+  background: #f2f2f2;
+  font-weight: 600;
+}
+
+input[type="number"],
+input[type="time"] {
+  width: 70px;
+  padding: 4px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+
+button {
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  background: #1976d2;
+  color: #fff;
+  transition: 0.2s;
+}
+
+button:hover {
+  background: #125aa0;
+}
+
+.right-panel button {
+  width: 100%;
+  background: #2e7d32;
+}
+
+.right-panel button:hover {
+  background: #1b5e20;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="header">
+  <img src="logo.png" alt="Logo">
+  PS DAILY REPORT GENERATOR
+</div>
+
+<div class="main-wrapper">
+
+<div class="left-panel">
+
+<h3>My Ris</h3>
+
+<div id="pasteArea">Klik di area ini lalu tekan Ctrl + V</div>
+
+<div class="preview" id="preview"></div>
+
+Jam (opsional):
+<input type="time" id="jam">
+
+<br><br>
+<button onclick="gabung()">Proses Gabung</button>
+<button onclick="copyCanvas()">Copy Hasil Gambar</button>
+
+<canvas id="canvas"></canvas>
+
+</div>
+
+<div class="right-panel">
+
+<h3>JUMLAH IO DAN RE</h3>
+<table>
+<tr><th>Nama</th><th>IO</th><th>RE</th></tr>
+<tr><td>CIANJUR</td><td><input type="number" id="io_cjr"></td><td><input type="number" id="re_cjr"></td></tr>
+<tr><td>KOTA BANDUNG</td><td><input type="number" id="io_kbd"></td><td><input type="number" id="re_kbd"></td></tr>
+<tr><td>BRANCH BANDUNG</td><td id="sum_io_bd">0</td><td id="sum_re_bd">0</td></tr>
+</table>
+
+<h3>JUMLAH IO DAN RE BRANCH LAIN</h3>
+<table>
+<tr><th>Nama</th><th>IO</th><th>RE</th></tr>
+<tr><td>BRANCH SURABAYA</td><td><input type="number"></td><td><input type="number"></td></tr>
+<tr><td>BRANCH SOUTHERN JAKARTA</td><td><input type="number"></td><td><input type="number"></td></tr>
+<tr><td>BRANCH BANJARMASIN</td><td><input type="number"></td><td><input type="number"></td></tr>
+</table>
+
+<h3>IO DAN RE AGENCY</h3>
+<table>
+<tr><th>Nama</th><th>IO</th><th>RE</th></tr>
+<tr><td>CIANJUR</td><td><input type="number" id="aio_cjr"></td><td><input type="number" id="are_cjr"></td></tr>
+<tr><td>KOTA BANDUNG</td><td><input type="number" id="aio_kbd"></td><td><input type="number" id="are_kbd"></td></tr>
+<tr><td>BRANCH BANDUNG</td><td id="asum_io_bd">0</td><td id="asum_re_bd">0</td></tr>
+</table>
+
+<button onclick="copyReportText()" style="margin-top:10px;width:100%">
+Copy Teks Report (Telegram)
+</button>
+
+</div>
+</div>
+
+<script>
+const images = [];
+
+document.addEventListener("paste", e => {
+  for (let item of e.clipboardData.items) {
+    if (item.type.includes("image")) {
+      const file = item.getAsFile();
+      const img = new Image();
+      img.src = URL.createObjectURL(file);
+      img.onload = () => {
+        images.push(img);
+        const p = document.createElement("img");
+        p.src = img.src;
+        document.getElementById("preview").appendChild(p);
+      };
+    }
+  }
+});
+
+function updateSum() {
+  sum_io_bd.innerText = (+io_cjr.value || 0) + (+io_kbd.value || 0);
+  sum_re_bd.innerText = (+re_cjr.value || 0) + (+re_kbd.value || 0);
+  asum_io_bd.innerText = (+aio_cjr.value || 0) + (+aio_kbd.value || 0);
+  asum_re_bd.innerText = (+are_cjr.value || 0) + (+are_kbd.value || 0);
+}
+
+document.querySelectorAll("input").forEach(i => i.addEventListener("input", updateSum));
+
+function gabung() {
+  if (images.length !== 4) {
+    alert("Harus 4 gambar!");
+    return;
+  }
+
+  const c = canvas;
+  const ctx = c.getContext("2d");
+  const scale = 2;
+
+  const w = Math.max(...images.map(i => i.width)) * scale;
+  const h = images.reduce((a,i)=>a+i.height,0) * scale + 280;
+
+  c.width = w;
+  c.height = h;
+
+  ctx.scale(scale, scale);
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0,0,w,h);
+
+  const now = new Date();
+  const jamVal = jam.value || now.toTimeString().slice(0,5);
+  const tgl = now.toLocaleDateString("id-ID");
+
+  ctx.fillStyle="#000";
+  ctx.font="bold 28px Arial";
+  ctx.fillText(`PS DAILY REPORT ${jamVal}   ${tgl}`, 10, 30);
+
+  let y = 60;
+  ["BANDUNG","SURABAYA","SOUTHERN JAKARTA","BANJARMASIN"].forEach((r,i)=>{
+    ctx.font="bold 16px Arial";
+    ctx.fillText(r,10,y-10);
+    ctx.drawImage(images[i],0,y);
+    y += images[i].height + 30;
+  });
+}
+
+function copyCanvas() {
+  canvas.toBlob(b=>{
+    navigator.clipboard.write([new ClipboardItem({"image/png":b})]);
+    alert("Gambar berhasil di-copy (HD)");
+  });
+}
+
+function copyReportText() {
+  const now = new Date();
+  const jamVal = jam.value || now.toTimeString().slice(0,5);
+  const tanggal = now.toLocaleDateString("id-ID", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric"
+  });
+
+  const text =
+`Report ${tanggal} pukul ${jamVal}
+
+JUMLAH IO DAN RE
+CIANJUR : IO = ${io_cjr.value || 0} RE = ${re_cjr.value || 0}
+KOTA BANDUNG : IO = ${io_kbd.value || 0} RE = ${re_kbd.value || 0}
+BRANCH BANDUNG : IO = ${sum_io_bd.innerText} RE = ${sum_re_bd.innerText}
+
+IO DAN RE BRANCH LAIN
+Surabaya : IO = ${document.querySelectorAll("table")[1].rows[1].cells[1].children[0].value || 0}
+RE = ${document.querySelectorAll("table")[1].rows[1].cells[2].children[0].value || 0}
+Southern Jakarta : IO = ${document.querySelectorAll("table")[1].rows[2].cells[1].children[0].value || 0}
+RE = ${document.querySelectorAll("table")[1].rows[2].cells[2].children[0].value || 0}
+Banjarmasin : IO = ${document.querySelectorAll("table")[1].rows[3].cells[1].children[0].value || 0}
+RE = ${document.querySelectorAll("table")[1].rows[3].cells[2].children[0].value || 0}
+
+IO DAN RE AGENCY
+CIANJUR : IO = ${aio_cjr.value || 0} RE = ${are_cjr.value || 0}
+KOTA BANDUNG : IO = ${aio_kbd.value || 0} RE = ${are_kbd.value || 0}
+BRANCH BANDUNG : IO = ${asum_io_bd.innerText} RE = ${asum_re_bd.innerText}`;
+
+  navigator.clipboard.writeText(text);
+  alert("Teks report berhasil di-copy");
+}
+</script>
+
+</body>
+</html>
